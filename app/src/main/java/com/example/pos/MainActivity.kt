@@ -1,6 +1,9 @@
 package com.example.pos
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.SharedPreferences
+import android.content.Intent
 import android.os.Bundle
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -14,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,9 +31,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val preferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
         setContent {
             PosTheme {
-                MainScreen()
+                MainScreen(preferences)
             }
         }
     }
@@ -37,70 +42,73 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(preferences: SharedPreferences) {
     val appName = stringResource(id = R.string.app_name)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            SideMenu()
-        }
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    title = {
-                        Text(appName)
-                    }
-                )
-            },
-            bottomBar = {
-                BottomAppBar(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        text = "",
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                SideMenu() // Drawer content
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        title = {
+                            Text(appName)
+                        }
                     )
-                }
-            },
-            floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    text = { Text("Show drawer") },
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    onClick = {
-                        scope.launch {
-                            if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                },
+                bottomBar = {
+                    BottomAppBar(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            text = "",
+                        )
+                    }
+                },
+                floatingActionButton = {
+                    ExtendedFloatingActionButton(
+                        text = { Text("Show drawer") },
+                        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                        onClick = {
+                            scope.launch {
+                                if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                            }
+                        }
+                    )
+                },
+                content = { innerPadding ->
+                    Row {
+                        Column(
+                            modifier = Modifier
+                                .padding(innerPadding),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            WebViewScreen(preferences)
                         }
                     }
-                )
-            },
-            content = { innerPadding ->
-                Row {
-                    Column(
-                        modifier = Modifier
-                            .padding(innerPadding),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        WebViewScreen()
-                    }
                 }
-            }
-        )
+            )
+        }
     }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun WebViewScreen() {
+fun WebViewScreen(preferences: SharedPreferences) {
     AndroidView(
         factory = { context ->
             WebView(context).apply {
@@ -112,14 +120,22 @@ fun WebViewScreen() {
             }
         },
         update = { webView ->
-            webView.loadUrl("https://www.google.com/")
+            val url = preferences.getString("scheme", "http") + "://" + preferences.getString("url", "www.google.com")
+            if(preferences.getString("port", "80").toString().isNotEmpty()){
+               url + ":" + preferences.getString("port", "80").toString()
+            }
+            webView.loadUrl(url)
         }
     )
 }
 
 @Composable
 fun SideMenu() {
-    ModalDrawerSheet {
+    val context = LocalContext.current // Access context for navigation
+    // Add padding to the top to account for the status bar
+    ModalDrawerSheet(
+        modifier = Modifier.systemBarsPadding() // Automatically handles insets
+    ) {
         Text("Drawer title", modifier = Modifier.padding(16.dp))
         HorizontalDivider()
         NavigationDrawerItem(
@@ -128,12 +144,15 @@ fun SideMenu() {
             onClick = { /* TODO: Handle navigation */ }
         )
         NavigationDrawerItem(
-            label = { Text(text = "Drawer Item 2") },
+            label = { Text(text = "Settings") },
             selected = false,
-            onClick = { /* TODO: Handle navigation */ }
+            onClick = {
+                context.startActivity(Intent(context, SettingsActivity::class.java))
+            }
         )
     }
 }
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
