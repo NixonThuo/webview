@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +51,8 @@ fun MainScreen(preferences: SharedPreferences) {
     val appName = stringResource(id = R.string.app_name)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var refreshWebView by remember { mutableStateOf(false) } // Trigger for WebView refresh
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -67,6 +71,15 @@ fun MainScreen(preferences: SharedPreferences) {
                         ),
                         title = {
                             Text(appName)
+                        },
+                        actions = {
+                            IconButton(onClick = {
+                                scope.launch {
+                                    if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                                }
+                            }) {
+                                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                            }
                         }
                     )
                 },
@@ -74,15 +87,15 @@ fun MainScreen(preferences: SharedPreferences) {
                     BottonNavBar()
                 },
                 floatingActionButton = {
-                    ExtendedFloatingActionButton(
-                        text = { Text("Show drawer") },
-                        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    FloatingActionButton(
                         onClick = {
-                            scope.launch {
-                                if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                            }
-                        }
-                    )
+                            refreshWebView = !refreshWebView // Toggle the refresh state
+                        },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh WebView")
+                    }
                 },
                 content = { innerPadding ->
                     Row {
@@ -91,7 +104,7 @@ fun MainScreen(preferences: SharedPreferences) {
                                 .padding(innerPadding),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            WebViewScreen(preferences)
+                            WebViewScreen(preferences, refreshTrigger = refreshWebView)
                         }
                     }
                 }
@@ -100,9 +113,23 @@ fun MainScreen(preferences: SharedPreferences) {
     }
 }
 
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun WebViewScreen(preferences: SharedPreferences) {
+fun WebViewScreen(preferences: SharedPreferences, refreshTrigger: Boolean) {
+    // Re-create the WebView whenever refreshTrigger changes
+    val url = remember(preferences, refreshTrigger) {
+        buildString {
+            append(preferences.getString("scheme", "http"))
+            append("://")
+            append(preferences.getString("url", "www.google.com"))
+            val port = preferences.getString("port", "80")
+            if (!port.isNullOrEmpty()) {
+                append(":$port")
+            }
+        }
+    }
+
     AndroidView(
         factory = { context ->
             WebView(context).apply {
@@ -111,17 +138,18 @@ fun WebViewScreen(preferences: SharedPreferences) {
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
                 settings.setSupportZoom(true)
+                println(url)
+                loadUrl(url) // Load the URL on creation
             }
         },
         update = { webView ->
-            val url = preferences.getString("scheme", "http") + "://" + preferences.getString("url", "www.google.com")
-            if(preferences.getString("port", "80").toString().isNotEmpty()){
-               url + ":" + preferences.getString("port", "80").toString()
-            }
-            webView.loadUrl(url)
+            println(url)
+            webView.loadUrl(url) // Reload the URL on updates
         }
     )
 }
+
+
 
 @Composable
 fun BottonNavBar() {
@@ -169,24 +197,44 @@ fun BottonNavBar() {
 @Composable
 fun SideMenu() {
     val context = LocalContext.current // Access context for navigation
-    // Add padding to the top to account for the status bar
+
     ModalDrawerSheet(
-        modifier = Modifier.systemBarsPadding() // Automatically handles insets
+        modifier = Modifier
+            .fillMaxHeight()
+            .systemBarsPadding(), // Automatically handles insets
+        drawerContainerColor = MaterialTheme.colorScheme.primaryContainer, // Set background color
+        drawerContentColor = MaterialTheme.colorScheme.onPrimaryContainer // Set text/icon color
     ) {
-        Text("Drawer title", modifier = Modifier.padding(16.dp))
-        HorizontalDivider()
-        NavigationDrawerItem(
-            label = { Text(text = "Drawer Item 1") },
-            selected = false,
-            onClick = { /* TODO: Handle navigation */ }
+        Text(
+            text = "Menu",
+            modifier = Modifier
+                .padding(16.dp),
+            style = MaterialTheme.typography.titleMedium, // Use typography style
+            color = MaterialTheme.colorScheme.primary // Override color if needed
         )
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), // Divider with reduced opacity
+            thickness = 1.dp
+        )
+        Spacer(modifier = Modifier.height(8.dp)) // Add spacing between items
         NavigationDrawerItem(
-            label = { Text(text = "Settings") },
+            label = {
+                Text(
+                    text = "Settings",
+                    style = MaterialTheme.typography.bodyMedium // Use consistent typography
+                )
+            },
             selected = false,
             onClick = {
                 context.startActivity(Intent(context, SettingsActivity::class.java))
-            }
+            },
+            colors = NavigationDrawerItemDefaults.colors(
+                unselectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer, // Color for selected state
+            )
         )
     }
 }
+
+
 

@@ -5,8 +5,10 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateListOf
+import java.net.InetAddress
 
 data class CallLogEntry(
+    val address: String,
     val number: String,
     val date: String,
     val duration: String,
@@ -24,12 +26,14 @@ fun fetchCallLogs(context: Context): List<CallLogEntry> {
     )
 
     cursor?.use {
+        val addressIndex = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
         val numberIndex = it.getColumnIndex(CallLog.Calls.NUMBER)
         val dateIndex = it.getColumnIndex(CallLog.Calls.DATE)
         val durationIndex = it.getColumnIndex(CallLog.Calls.DURATION)
         val typeIndex = it.getColumnIndex(CallLog.Calls.TYPE)
 
         while (it.moveToNext()) {
+            val address = it.getString(addressIndex)
             val number = it.getString(numberIndex)
             val date = it.getString(dateIndex)
             val duration = it.getString(durationIndex)
@@ -40,7 +44,7 @@ fun fetchCallLogs(context: Context): List<CallLogEntry> {
                 else -> "Other"
             }
 
-            callLogs.add(CallLogEntry(number, date, duration, type))
+            callLogs.add(CallLogEntry(address, number, date, duration, type))
         }
     }
     return callLogs

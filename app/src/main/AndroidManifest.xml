@@ -26,8 +26,8 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="@string/title_activity_settings" />
-        <activity android:name=".CallsActivity"  android:label="CallsActivity" />
-        <activity android:name=".MessagesActivity" android:label="MessagesActivity"  />
+        <activity android:name=".CallsActivity"  android:label="CallsActivity" android:theme="@style/Theme.Pos" android:windowSoftInputMode="adjustResize"/>
+        <activity android:name=".MessagesActivity" android:label="MessagesActivity"  android:theme="@style/Theme.Pos" android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
