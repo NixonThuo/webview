@@ -1,29 +1,34 @@
 package com.example.pos.composables
 
-import android.content.SharedPreferences
+import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.pos.models.SmsMessageEntry
-import com.example.pos.models.fetchSmsMessages
+import com.example.pos.database.SmsDatabase  // Import your database class
+import com.example.pos.SmsEntity       // Import your SMS entity class
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessagesScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
+fun MessagesScreen(onBackPressed: () -> Unit) {
     val context = LocalContext.current
-    var smsMessages by remember { mutableStateOf(emptyList<SmsMessageEntry>()) }
+    val smsDatabase = SmsDatabase.getDatabase(context)  // Access your Room database
+    val smsDao = smsDatabase.smsDao()                  // Get the DAO
+    var smsMessages by remember { mutableStateOf(emptyList<SmsEntity>()) }
+    val coroutineScope = rememberCoroutineScope()
 
-    // Request permission and fetch messages
-    RequestSmsPermission {
-        smsMessages = fetchSmsMessages(context)
+    // Fetch messages from the database
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            smsMessages = smsDao.getAllSms()  // Retrieve SMS from the database
+        }
     }
 
     Scaffold(
@@ -50,7 +55,7 @@ fun MessagesScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                     .padding(innerPadding)
                     .fillMaxSize(),
                 contentAlignment = Alignment.TopCenter
-            ){
+            ) {
                 // Display SMS messages
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -64,11 +69,11 @@ fun MessagesScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                             elevation = CardDefaults.cardElevation(4.dp)
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
-                                Text("From: ${message.address}", style = MaterialTheme.typography.bodyLarge)
+                                Text("From: ${message.sender}", style = MaterialTheme.typography.bodyLarge)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Message: ${message.body}", style = MaterialTheme.typography.bodyMedium)
+                                Text("Message: ${message.messageBody}", style = MaterialTheme.typography.bodyMedium)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Date: ${message.date}", style = MaterialTheme.typography.bodyMedium)
+                                Text("Date: ${message.timestamp}", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -76,5 +81,5 @@ fun MessagesScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
             }
         }
     )
-
 }
+

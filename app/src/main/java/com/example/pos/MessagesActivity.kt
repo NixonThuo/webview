@@ -14,8 +14,7 @@ class MessagesActivity : ComponentActivity() {
         setContent {
             PosTheme {
                 MessagesScreen(
-                    onBackPressed = { finish() },
-                    preferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                    onBackPressed = { finish() }
                 )
             }
         }
