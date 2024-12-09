@@ -14,7 +14,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MailOutline
@@ -22,24 +21,29 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.pos.ui.theme.PosTheme
 import kotlinx.coroutines.launch
 import android.Manifest
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyManager
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.pos.database.CallEntity
+import com.example.pos.database.SmsDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
+
+    private lateinit var telephonyManager: TelephonyManager
+    private var callStateListener: PhoneStateListener? = null
 
     // Activity Result Launcher for permission request
     private val requestSmsPermissionLauncher =
@@ -56,6 +60,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Initialize TelephonyManager
+        telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
+        // Request permission if not already granted
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionsLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+        } else {
+            startCallMonitoring()
+        }
+
         val preferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
         setContent {
             PosTheme {
@@ -67,6 +84,74 @@ class MainActivity : ComponentActivity() {
             // Request permission
             requestSmsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
         }
+    }
+
+    private fun startCallMonitoring() {
+        callStateListener = object : PhoneStateListener() {
+            override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+                val timestamp = System.currentTimeMillis()
+                val db = SmsDatabase.getDatabase(this@MainActivity)
+
+                when (state) {
+                    TelephonyManager.CALL_STATE_RINGING -> {
+                        // Log incoming call
+                        val call = CallEntity(
+                            phoneNumber = phoneNumber,
+                            callType = "Incoming",
+                            timestamp = timestamp
+                        )
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.callDao().insert(call)
+                        }
+                    }
+                    TelephonyManager.CALL_STATE_OFFHOOK -> {
+                        // Log outgoing call
+                        val call = CallEntity(
+                            phoneNumber = phoneNumber, // May not be reliable for outgoing calls
+                            callType = "Outgoing",
+                            timestamp = timestamp
+                        )
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.callDao().insert(call)
+                        }
+                    }
+                    // Ignore CALL_STATE_IDLE
+                }
+            }
+        }
+
+        callStateListener?.let {
+            telephonyManager.listen(it, PhoneStateListener.LISTEN_CALL_STATE)
+        }
+    }
+
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopCallMonitoring()
+    }
+
+    private fun stopCallMonitoring() {
+        callStateListener?.let {
+            telephonyManager.listen(it, PhoneStateListener.LISTEN_NONE)
+        }
+    }
+
+    // Activity Result Launcher for permission request
+    private val requestPermissionsLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                startCallMonitoring()
+                Toast.makeText(this, "Phone state permission granted", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Phone state permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+
+    companion object {
+        const val REQUEST_PHONE_STATE_PERMISSION = 1
     }
 }
 

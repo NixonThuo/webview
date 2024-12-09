@@ -4,11 +4,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import android.content.Context
-import com.example.pos.SmsEntity
 
-@Database(entities = [SmsEntity::class], version = 1)
+@Database(entities = [SmsEntity::class, CallEntity::class], version = 2, exportSchema = false)
 abstract class SmsDatabase : RoomDatabase() {
     abstract fun smsDao(): SmsDao
+    abstract fun callDao(): CallDao
 
     companion object {
         @Volatile
@@ -20,7 +20,9 @@ abstract class SmsDatabase : RoomDatabase() {
                     context.applicationContext,
                     SmsDatabase::class.java,
                     "sms_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // Handle migrations
+                    .build()
                 INSTANCE = instance
                 instance
             }

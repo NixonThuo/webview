@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
+import com.example.pos.database.CallEntity
+import com.example.pos.database.SmsDatabase
 import com.example.pos.models.CallLogEntry
 import com.example.pos.models.fetchCallLogs
 
@@ -21,18 +23,18 @@ import com.example.pos.models.fetchCallLogs
 @Composable
 fun CallLogScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
     val context = LocalContext.current
-    var callLogs by remember { mutableStateOf(emptyList<CallLogEntry>()) }
-    println("entering call center")
-    // Request permission and fetch logs
-    RequestCallLogPermission {
-        callLogs = fetchCallLogs(context)
-    }
+    var callLogs by remember { mutableStateOf(emptyList<CallEntity>()) }
 
+    // Load call logs from the database
+    LaunchedEffect(Unit) {
+        val db = SmsDatabase.getDatabase(context)
+        callLogs = db.callDao().getAllCalls()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calls") },
+                title = { Text("Call Logs") },
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(
@@ -54,7 +56,6 @@ fun CallLogScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                     .fillMaxSize(),
                 contentAlignment = Alignment.TopCenter
             ) {
-
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp)
@@ -68,23 +69,15 @@ fun CallLogScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 Text(
-                                    "Name: ${log.address}",
+                                    text = "Number: ${log.phoneNumber ?: "Unknown"}",
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
-                                    "Number: ${log.number}",
+                                    text = "Type: ${log.callType}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Date: ${log.date}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    "Duration: ${log.duration} sec",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    "Type: ${log.type}",
+                                    text = "Date: ${log.timestamp}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -94,5 +87,5 @@ fun CallLogScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
             }
         }
     )
-
 }
+

@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.pos.database.SmsDatabase  // Import your database class
-import com.example.pos.SmsEntity       // Import your SMS entity class
+import com.example.pos.database.SmsEntity       // Import your SMS entity class
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
