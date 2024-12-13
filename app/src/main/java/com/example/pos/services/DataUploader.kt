@@ -2,6 +2,7 @@ package com.example.pos.services
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.example.pos.database.CallDao
 import com.example.pos.database.SmsDao
 import kotlinx.coroutines.CoroutineScope
@@ -44,20 +45,20 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
                     val messageType = RequestBody.create("text/plain".toMediaTypeOrNull(), call.messageType)
                     val messagePriority = RequestBody.create("text/plain".toMediaTypeOrNull(), call.messagePriority)
 
-                    val callRequest = apiService.uploadCall(phoneNumber, callType, timestamp, contactName, messageType, messagePriority)
-                    callRequest.enqueue(object : Callback<Void> {
-                        override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val response = apiService.uploadCall(
+                                phoneNumber, callType, timestamp, contactName, messageType, messagePriority
+                            )
                             if (response.isSuccessful) {
-                                Handler(Looper.getMainLooper()).post {
-                                    // Update UI or perform success actions
-                                }
+                                Log.d("Upload", "Call data uploaded successfully.")
+                            } else {
+                                Log.e("Upload", "Failed to upload call data: ${response.errorBody()?.string()}")
                             }
+                        } catch (e: Exception) {
+                            Log.e("Upload", "Error uploading call data", e)
                         }
-
-                        override fun onFailure(call: Call<Void>, t: Throwable) {
-                            t.printStackTrace()
-                        }
-                    })
+                    }
                 }
 
                 // Step 2: Read SMS data from Room
@@ -70,26 +71,26 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
                     val messageType = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.messageType)
                     val messagePriority = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.messagePriority)
 
-                    val smsRequest = apiService.uploadSms(sender, messageBody, timestamp, messageType, messagePriority)
-                    smsRequest.enqueue(object : Callback<Void> {
-                        override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val response = apiService.uploadSms(
+                                sender, messageBody, timestamp, messageType, messagePriority
+                            )
                             if (response.isSuccessful) {
-                                Handler(Looper.getMainLooper()).post {
-                                    // Update UI or perform success actions
-                                }
+                                Log.d("Upload", "SMS data uploaded successfully.")
+                            } else {
+                                Log.e("Upload", "Failed to upload SMS data: ${response.errorBody()?.string()}")
                             }
+                        } catch (e: Exception) {
+                            Log.e("Upload", "Error uploading SMS data", e)
                         }
-
-                        override fun onFailure(call: Call<Void>, t: Throwable) {
-                            t.printStackTrace()
-                        }
-                    })
+                    }
                 }
-
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("Upload", "Error uploading data", e)
             }
         }
     }
 }
+
 

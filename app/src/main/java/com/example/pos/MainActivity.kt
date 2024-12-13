@@ -33,7 +33,9 @@ import android.Manifest
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.pos.database.CallDao
 import com.example.pos.database.CallEntity
+import com.example.pos.database.SmsDao
 import com.example.pos.database.SmsDatabase
 import com.example.pos.services.ApiService
 import com.example.pos.services.DataUploader
@@ -47,12 +49,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var telephonyManager: TelephonyManager
     private var callStateListener: PhoneStateListener? = null
 
-    // Initialize Room DAOs and Retrofit API service
-    val database = SmsDatabase.getDatabase(applicationContext)
-    val callDao = database.callDao()
-    val smsDao = database.smsDao()
+    // Declare DAOs and DataUploader as lateinit to avoid early initialization
+    private lateinit var callDao: CallDao
+    private lateinit var smsDao: SmsDao
+    private lateinit var dataUploader: DataUploader
 
-    val dataUploader = DataUploader(callDao, smsDao)
 
     // Activity Result Launcher for permission request
     private val requestSmsPermissionLauncher =
@@ -69,7 +70,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        dataUploader.uploadData()
+
         // Initialize TelephonyManager
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
