@@ -64,4 +64,8 @@ dependencies {
     implementation(libs.room.ktx)  // Optional, for Kotlin extensions
     // Add the kapt dependency for Room compiler
     kapt(libs.room.compiler)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor) // Optional: for logging HTTP requests
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson.converter)
 }

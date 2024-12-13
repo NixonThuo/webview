@@ -32,7 +32,11 @@ class SmsReceiver : BroadcastReceiver() {
                     val smsEntity = SmsEntity(
                         sender = sender,
                         messageBody = messageBody,
-                        timestamp = timestamp
+                        timestamp = timestamp,
+                        isSynchronized = false,
+                        isSynchronizedDate = timestamp,
+                        messageType = "",
+                        messagePriority = ""
                     )
 
                     CoroutineScope(Dispatchers.IO).launch {

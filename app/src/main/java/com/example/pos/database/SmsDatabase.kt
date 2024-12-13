@@ -5,7 +5,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import android.content.Context
 
-@Database(entities = [SmsEntity::class, CallEntity::class], version = 2, exportSchema = false)
+@Database(entities = [SmsEntity::class, CallEntity::class], version = 5, exportSchema = false)
 abstract class SmsDatabase : RoomDatabase() {
     abstract fun smsDao(): SmsDao
     abstract fun callDao(): CallDao

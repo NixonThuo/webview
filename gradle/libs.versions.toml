@@ -12,6 +12,9 @@ appcompat = "1.6.1"
 preference = "1.2.0"
 material = "1.4.+"
 room = "2.6.1"  # Use the latest version if different
+okhttp = "4.10.0" # Replace with the latest version
+retrofit = "2.9.0" # Replace with the latest version
+gson = "2.10.1" # Gson version for JSON parsing with Retrofit
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +37,10 @@ material = { group = "com.google.android.material", name = "material", version.r
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }  # Optional, for Kotlin extensions
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-gson-converter = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

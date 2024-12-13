@@ -35,6 +35,8 @@ import android.telephony.TelephonyManager
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.pos.database.CallEntity
 import com.example.pos.database.SmsDatabase
+import com.example.pos.services.ApiService
+import com.example.pos.services.DataUploader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
@@ -44,6 +46,13 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var telephonyManager: TelephonyManager
     private var callStateListener: PhoneStateListener? = null
+
+    // Initialize Room DAOs and Retrofit API service
+    val database = SmsDatabase.getDatabase(applicationContext)
+    val callDao = database.callDao()
+    val smsDao = database.smsDao()
+
+    val dataUploader = DataUploader(callDao, smsDao)
 
     // Activity Result Launcher for permission request
     private val requestSmsPermissionLauncher =
@@ -60,7 +69,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
+        dataUploader.uploadData()
         // Initialize TelephonyManager
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
@@ -88,6 +97,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startCallMonitoring() {
         callStateListener = object : PhoneStateListener() {
+            @Deprecated("Deprecated in Java")
             override fun onCallStateChanged(state: Int, phoneNumber: String?) {
                 val timestamp = System.currentTimeMillis()
                 val db = SmsDatabase.getDatabase(this@MainActivity)
@@ -98,7 +108,12 @@ class MainActivity : ComponentActivity() {
                         val call = CallEntity(
                             phoneNumber = phoneNumber,
                             callType = "Incoming",
-                            timestamp = timestamp
+                            timestamp = timestamp,
+                            contactName = "",
+                            isSynchronized = false,
+                            isSynchronizedDate = timestamp,
+                            messageType = "",
+                            messagePriority = ""
                         )
                         CoroutineScope(Dispatchers.IO).launch {
                             db.callDao().insert(call)
@@ -109,7 +124,12 @@ class MainActivity : ComponentActivity() {
                         val call = CallEntity(
                             phoneNumber = phoneNumber, // May not be reliable for outgoing calls
                             callType = "Outgoing",
-                            timestamp = timestamp
+                            timestamp = timestamp,
+                            contactName = "",
+                            isSynchronized = false,
+                            isSynchronizedDate = timestamp,
+                            messageType = "",
+                            messagePriority = ""
                         )
                         CoroutineScope(Dispatchers.IO).launch {
                             db.callDao().insert(call)
