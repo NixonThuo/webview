@@ -12,7 +12,8 @@ data class CallLogEntry(
     val number: String,
     val date: String,
     val duration: String,
-    val type: String
+    val type: String,
+    val name: String
 )
 
 fun fetchCallLogs(context: Context): List<CallLogEntry> {
@@ -31,6 +32,7 @@ fun fetchCallLogs(context: Context): List<CallLogEntry> {
         val dateIndex = it.getColumnIndex(CallLog.Calls.DATE)
         val durationIndex = it.getColumnIndex(CallLog.Calls.DURATION)
         val typeIndex = it.getColumnIndex(CallLog.Calls.TYPE)
+        val  nameIndex = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
 
         while (it.moveToNext()) {
             val address = it.getString(addressIndex)
@@ -43,8 +45,9 @@ fun fetchCallLogs(context: Context): List<CallLogEntry> {
                 CallLog.Calls.MISSED_TYPE -> "Missed"
                 else -> "Other"
             }
+            val name = it.getString(nameIndex)
 
-            callLogs.add(CallLogEntry(address, number, date, duration, type))
+            callLogs.add(CallLogEntry(address, number, date, duration, type, name))
         }
     }
     return callLogs

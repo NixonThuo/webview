@@ -74,6 +74,10 @@ fun MessagesScreen(onBackPressed: () -> Unit) {
                                 Text("Message: ${message.messageBody}", style = MaterialTheme.typography.bodyMedium)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("Date: ${message.timestamp}", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Synchronized: ${message.isSynchronized}", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Synchronized Date: ${message.isSynchronizedDate}", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }

@@ -2,7 +2,6 @@ package com.example.pos.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.util.Date
 
 @Entity(tableName = "call_log")
 data class CallEntity(
@@ -13,6 +12,5 @@ data class CallEntity(
     val contactName: String,
     val isSynchronized: Boolean,
     val isSynchronizedDate: Long,
-    val messageType: String,
-    val messagePriority: String
+    val callPriority: String
 )

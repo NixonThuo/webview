@@ -12,6 +12,7 @@ import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.*
 
 class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
 
@@ -29,24 +30,25 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // Step 1: Read call data from Room
-                val callEntities = callDao.getAllCalls()
+                val callEntities = callDao.getUnsynchronizedCalls()
 
                 callEntities.forEach { call ->
                     val phoneNumber = RequestBody.create("text/plain".toMediaTypeOrNull(), call.phoneNumber ?: "")
                     val callType = RequestBody.create("text/plain".toMediaTypeOrNull(), call.callType)
                     val timestamp = RequestBody.create("text/plain".toMediaTypeOrNull(), call.timestamp.toString())
                     val contactName = RequestBody.create("text/plain".toMediaTypeOrNull(), call.contactName)
-                    val messageType = RequestBody.create("text/plain".toMediaTypeOrNull(), call.messageType)
-                    val messagePriority = RequestBody.create("text/plain".toMediaTypeOrNull(), call.messagePriority)
+                    val callPriority = RequestBody.create("text/plain".toMediaTypeOrNull(), call.callPriority)
                     val id = RequestBody.create("text/plain".toMediaTypeOrNull(), call.id.toString())
 
                     withContext(Dispatchers.IO) {
                         try {
                             val response = apiService.uploadCall(
-                                phoneNumber, callType, timestamp, contactName, messageType, messagePriority, id
+                                phoneNumber, callType, timestamp, contactName, callPriority, id
                             )
                             if (response.isSuccessful) {
                                 Log.d("Upload", "Call data uploaded successfully.")
+                                val currentTime = System.currentTimeMillis()
+                                callDao.updateSynchronizationStatus(call.id, true, currentTime)
                             } else {
                                 Log.e("Upload", "Failed to upload call data: ${response.errorBody()?.string()}")
                             }
@@ -57,7 +59,7 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
                 }
 
                 // Step 2: Read SMS data from Room
-                val smsEntities = smsDao.getAllSms()
+                val smsEntities = smsDao.getUnsynchronizedSms()
 
                 smsEntities.forEach { sms ->
                     val sender = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.sender)
@@ -74,6 +76,8 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
                             )
                             if (response.isSuccessful) {
                                 Log.d("Upload", "SMS data uploaded successfully.")
+                                val currentTime = System.currentTimeMillis()
+                                smsDao.updateSynchronizationStatus(sms.id, true, currentTime)
                             } else {
                                 Log.e("Upload", "Failed to upload SMS data: ${response.errorBody()?.string()}")
                             }
@@ -88,5 +92,3 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
         }
     }
 }
-
-

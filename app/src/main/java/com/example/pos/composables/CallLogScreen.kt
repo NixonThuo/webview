@@ -73,6 +73,10 @@ fun CallLogScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
+                                    text = "Name: ${log.contactName}",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
                                     text = "Type: ${log.callType}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )

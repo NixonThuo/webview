@@ -10,12 +10,11 @@ interface ApiService {
     @Multipart
     @POST("call_data")
     suspend fun uploadCall(
-        @Part("phoneNumber") phoneNumber: RequestBody,
-        @Part("callType") callType: RequestBody,
-        @Part("timestamp") timestamp: RequestBody,
-        @Part("contactName") contactName: RequestBody,
-        @Part("messageType") messageType: RequestBody,
-        @Part("messagePriority") messagePriority: RequestBody,
+        @Part("call_number") phoneNumber: RequestBody,
+        @Part("call_type") callType: RequestBody,
+        @Part("call_date") timestamp: RequestBody,
+        @Part("caller_name") contactName: RequestBody,
+        @Part("call_priority") callPriority: RequestBody,
         @Part("android_id") id: RequestBody
     ): Response<Void>
 
@@ -25,8 +24,8 @@ interface ApiService {
         @Part("sender") sender: RequestBody,
         @Part("content") messageBody: RequestBody,
         @Part("timestamp") timestamp: RequestBody,
-        @Part("messageType") messageType: RequestBody,
-        @Part("messagePriority") messagePriority: RequestBody,
+        @Part("message_type") messageType: RequestBody,
+        @Part("message_priority") messagePriority: RequestBody,
         @Part("android_id") id: RequestBody
     ): Response<Void>
 }

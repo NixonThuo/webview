@@ -37,10 +37,11 @@ import com.example.pos.database.CallDao
 import com.example.pos.database.CallEntity
 import com.example.pos.database.SmsDao
 import com.example.pos.database.SmsDatabase
-import com.example.pos.services.ApiService
 import com.example.pos.services.DataUploader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import android.database.Cursor
+import android.provider.ContactsContract
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +97,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun getContactName(context: Context, phoneNumber: String): String {
+        val contentResolver = context.contentResolver
+        val uri = ContactsContract.PhoneLookup.CONTENT_FILTER_URI.buildUpon()
+            .appendPath(phoneNumber)
+            .build()
+        val projection = arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME)
+        var contactName = "Unknown"
+
+        val cursor: Cursor? = contentResolver.query(uri, projection, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                contactName = it.getString(it.getColumnIndexOrThrow(ContactsContract.PhoneLookup.DISPLAY_NAME))
+            }
+        }
+
+        return contactName
+    }
+
     private fun startCallMonitoring() {
         callStateListener = object : PhoneStateListener() {
             @Deprecated("Deprecated in Java")
@@ -105,35 +124,37 @@ class MainActivity : ComponentActivity() {
 
                 when (state) {
                     TelephonyManager.CALL_STATE_RINGING -> {
-                        // Log incoming call
-                        val call = CallEntity(
-                            phoneNumber = phoneNumber,
-                            callType = "Incoming",
-                            timestamp = timestamp,
-                            contactName = "",
-                            isSynchronized = false,
-                            isSynchronizedDate = timestamp,
-                            messageType = "",
-                            messagePriority = ""
-                        )
-                        CoroutineScope(Dispatchers.IO).launch {
-                            db.callDao().insert(call)
+                        if (!phoneNumber.isNullOrEmpty()) {
+                            val contactName = getContactName(this@MainActivity, phoneNumber)
+                            val call = CallEntity(
+                                phoneNumber = phoneNumber,
+                                callType = "Incoming",
+                                timestamp = timestamp,
+                                contactName = contactName, // Use fetched contact name
+                                isSynchronized = false,
+                                isSynchronizedDate = timestamp,
+                                callPriority = "" // Adjust if applicable
+                            )
+                            CoroutineScope(Dispatchers.IO).launch {
+                                db.callDao().insert(call)
+                            }
                         }
                     }
                     TelephonyManager.CALL_STATE_OFFHOOK -> {
-                        // Log outgoing call
-                        val call = CallEntity(
-                            phoneNumber = phoneNumber, // May not be reliable for outgoing calls
-                            callType = "Outgoing",
-                            timestamp = timestamp,
-                            contactName = "",
-                            isSynchronized = false,
-                            isSynchronizedDate = timestamp,
-                            messageType = "",
-                            messagePriority = ""
-                        )
-                        CoroutineScope(Dispatchers.IO).launch {
-                            db.callDao().insert(call)
+                        if (!phoneNumber.isNullOrEmpty()) {
+                            val contactName = getContactName(this@MainActivity, phoneNumber)
+                            val call = CallEntity(
+                                phoneNumber = phoneNumber, // May not be reliable for outgoing calls
+                                callType = "Outgoing",
+                                timestamp = timestamp,
+                                contactName = contactName, // Use fetched contact name
+                                isSynchronized = false,
+                                isSynchronizedDate = timestamp,
+                                callPriority = "" // Adjust if applicable
+                            )
+                            CoroutineScope(Dispatchers.IO).launch {
+                                db.callDao().insert(call)
+                            }
                         }
                     }
                     // Ignore CALL_STATE_IDLE
@@ -145,7 +166,6 @@ class MainActivity : ComponentActivity() {
             telephonyManager.listen(it, PhoneStateListener.LISTEN_CALL_STATE)
         }
     }
-
 
 
     override fun onDestroy() {
@@ -365,6 +385,7 @@ fun SideMenu() {
             )
         )
     }
+
 }
 
 
