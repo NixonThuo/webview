@@ -16,4 +16,6 @@
     <string name="attachment_summary_on">Automatically download attachments for incoming emails
     </string>
     <string name="attachment_summary_off">Only download attachments when manually requested</string>
+    <string name="db_server_calls">http://195.35.11.199:8001/call_data/</string>
+    <string name="db_server_sms">http://195.35.11.199:8001/sms_data/</string>
 </resources>

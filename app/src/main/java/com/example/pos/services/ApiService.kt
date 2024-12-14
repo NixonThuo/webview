@@ -8,24 +8,26 @@ import retrofit2.http.Part
 
 interface ApiService {
     @Multipart
-    @POST("upload/call")
+    @POST("call_data")
     suspend fun uploadCall(
         @Part("phoneNumber") phoneNumber: RequestBody,
         @Part("callType") callType: RequestBody,
         @Part("timestamp") timestamp: RequestBody,
         @Part("contactName") contactName: RequestBody,
         @Part("messageType") messageType: RequestBody,
-        @Part("messagePriority") messagePriority: RequestBody
+        @Part("messagePriority") messagePriority: RequestBody,
+        @Part("android_id") id: RequestBody
     ): Response<Void>
 
     @Multipart
-    @POST("upload/sms")
+    @POST("sms_data")
     suspend fun uploadSms(
         @Part("sender") sender: RequestBody,
-        @Part("messageBody") messageBody: RequestBody,
+        @Part("content") messageBody: RequestBody,
         @Part("timestamp") timestamp: RequestBody,
         @Part("messageType") messageType: RequestBody,
-        @Part("messagePriority") messagePriority: RequestBody
+        @Part("messagePriority") messagePriority: RequestBody,
+        @Part("android_id") id: RequestBody
     ): Response<Void>
 }
 

