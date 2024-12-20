@@ -36,6 +36,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".CallBroadcastReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+                <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
+            </intent-filter>
+        </receiver>
+
+
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
@@ -61,6 +69,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+<!--
+        <service
+            android:name=".MyCallScreeningService"
+            android:exported="true"
+            android:permission="android.permission.BIND_CALL_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>-->
     </application>
 
 </manifest>

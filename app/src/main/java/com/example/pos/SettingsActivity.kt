@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -35,9 +37,18 @@ class SettingsActivity : ComponentActivity() {
 @Composable
 fun SettingsScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
     // Load initial values from SharedPreferences
-    var scheme by remember { mutableStateOf(TextFieldValue(preferences.getString("scheme", "http") ?: "http")) }
-    var url by remember { mutableStateOf(TextFieldValue(preferences.getString("url", "www.example.com") ?: "www.example.com")) }
+    var protocol by remember { mutableStateOf(TextFieldValue(preferences.getString("protocol", "http") ?: "http")) }
+    var domainOrIp by remember { mutableStateOf(TextFieldValue(preferences.getString("domain_ip", "www.example.com") ?: "www.example.com")) }
     var port by remember { mutableStateOf(TextFieldValue(preferences.getString("port", "80") ?: "80")) }
+    var pageReference by remember { mutableStateOf(TextFieldValue(preferences.getString("page_reference", "index") ?: "index")) }
+
+    // Load values for the second section
+    var protocol2 by remember { mutableStateOf(TextFieldValue(preferences.getString("protocol2", "http") ?: "http")) }
+    var domainOrIp2 by remember { mutableStateOf(TextFieldValue(preferences.getString("domain_ip2", "www.example.com") ?: "www.example.com")) }
+    var port2 by remember { mutableStateOf(TextFieldValue(preferences.getString("port2", "80") ?: "80")) }
+    var pageReference2 by remember { mutableStateOf(TextFieldValue(preferences.getString("page_reference2", "index") ?: "index")) }
+    var mobileNumber by remember { mutableStateOf(TextFieldValue(preferences.getString("mobile_number", "") ?: "")) }
+    var userSerialNumber by remember { mutableStateOf(TextFieldValue(preferences.getString("user_serial_number", "") ?: "")) }
 
     Scaffold(
         topBar = {
@@ -67,19 +78,21 @@ fun SettingsScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Configure Server Settings", style = MaterialTheme.typography.titleMedium)
+                    Text("Configure Backend Server Settings", style = MaterialTheme.typography.titleMedium)
+
                     OutlinedTextField(
-                        value = scheme,
-                        onValueChange = { scheme = it },
-                        label = { Text("Scheme (http/https)") }
+                        value = protocol,
+                        onValueChange = { protocol = it },
+                        label = { Text("Protocol (http/https)") }
                     )
                     OutlinedTextField(
-                        value = url,
-                        onValueChange = { url = it },
-                        label = { Text("URL") }
+                        value = domainOrIp,
+                        onValueChange = { domainOrIp = it },
+                        label = { Text("Domain/IP") }
                     )
                     OutlinedTextField(
                         value = port,
@@ -87,13 +100,62 @@ fun SettingsScreen(onBackPressed: () -> Unit, preferences: SharedPreferences) {
                         label = { Text("Port") },
                         singleLine = true
                     )
+                    OutlinedTextField(
+                        value = pageReference,
+                        onValueChange = { pageReference = it },
+                        label = { Text("Page Reference") }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Configure Additional Backend Server Settings", style = MaterialTheme.typography.titleMedium)
+
+                    OutlinedTextField(
+                        value = protocol2,
+                        onValueChange = { protocol2 = it },
+                        label = { Text("Protocol (http/https)") }
+                    )
+                    OutlinedTextField(
+                        value = domainOrIp2,
+                        onValueChange = { domainOrIp2 = it },
+                        label = { Text("Domain/IP") }
+                    )
+                    OutlinedTextField(
+                        value = port2,
+                        onValueChange = { port2 = it },
+                        label = { Text("Port") },
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = pageReference2,
+                        onValueChange = { pageReference2 = it },
+                        label = { Text("Page Reference") }
+                    )
+                    OutlinedTextField(
+                        value = mobileNumber,
+                        onValueChange = { mobileNumber = it },
+                        label = { Text("Mobile Phone Number") }
+                    )
+                    OutlinedTextField(
+                        value = userSerialNumber,
+                        onValueChange = { userSerialNumber = it },
+                        label = { Text("User Serial Number/ID") }
+                    )
+
                     Button(
                         onClick = {
                             // Save values to SharedPreferences
                             preferences.edit()
-                                .putString("scheme", scheme.text)
-                                .putString("url", url.text)
+                                .putString("protocol", protocol.text)
+                                .putString("domain_ip", domainOrIp.text)
                                 .putString("port", port.text)
+                                .putString("page_reference", pageReference.text)
+                                .putString("protocol2", protocol2.text)
+                                .putString("domain_ip2", domainOrIp2.text)
+                                .putString("port2", port2.text)
+                                .putString("page_reference2", pageReference2.text)
+                                .putString("mobile_number", mobileNumber.text)
+                                .putString("user_serial_number", userSerialNumber.text)
                                 .apply()
                         },
                         modifier = Modifier.align(Alignment.End)

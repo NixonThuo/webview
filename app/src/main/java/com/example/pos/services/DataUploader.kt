@@ -1,5 +1,6 @@
 package com.example.pos.services
 
+import android.content.SharedPreferences
 import android.util.Log
 import com.example.pos.database.CallDao
 import com.example.pos.database.SmsDao
@@ -14,17 +15,29 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
 
-class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao) {
+class DataUploader(private val callDao: CallDao, private val smsDao: SmsDao, private val preferences: SharedPreferences) {
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder().build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("http://195.35.11.199:8001/") // Replace with your base URL
+        .baseUrl(buildBaseUrl()) // Dynamically constructed base URL from SharedPreferences
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
     private val apiService: ApiService = retrofit.create(ApiService::class.java)
+
+    private fun buildBaseUrl(): String {
+        val protocol = preferences.getString("protocol2", "http") ?: "http"
+        val domain = preferences.getString("domain_ip2", "195.35.11.199") ?: "195.35.11.199"
+        val port = preferences.getString("port2", "8001") ?: "8001"
+        val pageReference = preferences.getString("page_reference2", "") ?: ""
+        return if (protocol == "http" && domain == "195.35.11.199" && port == "8001" && pageReference.isEmpty()) {
+            "http://195.35.11.199:8001/"
+        } else {
+            "$protocol://$domain:$port/$pageReference/"
+        }
+    }
 
     fun uploadData() {
         CoroutineScope(Dispatchers.IO).launch {
