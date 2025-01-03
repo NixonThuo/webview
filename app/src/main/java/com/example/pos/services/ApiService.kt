@@ -8,7 +8,7 @@ import retrofit2.http.Part
 
 interface ApiService {
     @Multipart
-    @POST("call_data")
+    @POST("call_data.jsp?action=incoming")
     suspend fun uploadCall(
         @Part("call_number") phoneNumber: RequestBody,
         @Part("call_type") callType: RequestBody,
@@ -19,7 +19,7 @@ interface ApiService {
     ): Response<Void>
 
     @Multipart
-    @POST("sms_data")
+    @POST("sms_data.jsp?action=incoming")
     suspend fun uploadSms(
         @Part("sender") sender: RequestBody,
         @Part("content") messageBody: RequestBody,

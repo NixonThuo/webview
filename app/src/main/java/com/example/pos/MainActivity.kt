@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
             addAction(android.telephony.TelephonyManager.ACTION_PHONE_STATE_CHANGED)
             addAction(Intent.ACTION_NEW_OUTGOING_CALL)
         }
+
         registerReceiver(callReceiver, intentFilter)
 
         val preferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
@@ -165,11 +166,12 @@ fun WebViewScreen(preferences: SharedPreferences, refreshTrigger: Boolean) {
         buildString {
             append(preferences.getString("scheme", "http"))
             append("://")
-            append(preferences.getString("url", "www.google.com"))
+            append(preferences.getString("domain_ip", "www.misoo.co.ke"))
             val port = preferences.getString("port", "80")
             if (!port.isNullOrEmpty()) {
                 append(":$port")
             }
+            append("/DotPESA/index.jsp")
         }
     }
 
