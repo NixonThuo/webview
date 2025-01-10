@@ -1,5 +1,6 @@
 package com.example.pos.composables
 
+import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,15 +8,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.pos.database.SmsDao
 import com.example.pos.database.SmsDatabase  // Import your database class
 import com.example.pos.database.SmsEntity       // Import your SMS entity class
 import kotlinx.coroutines.launch
 import java.util.Date
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +33,7 @@ fun MessagesScreen(onBackPressed: () -> Unit) {
 
     // State to control the visibility of the dialog
     var showDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
 
     // Fetch messages from the database
     LaunchedEffect(Unit) {
@@ -35,7 +41,6 @@ fun MessagesScreen(onBackPressed: () -> Unit) {
             smsMessages = smsDao.getAllSms()  // Retrieve SMS from the database
         }
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,14 +60,29 @@ fun MessagesScreen(onBackPressed: () -> Unit) {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Message"
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    FloatingActionButton(
+                        onClick = {
+                            showImportDialog = true
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh, // Replace with your desired import icon
+                            contentDescription = "Import"
+                        )
+                    }
+                    FloatingActionButton(
+                        onClick = { showDialog = true },
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Message"
+                        )
+                    }
+                }
             }
         },
         content = { innerPadding ->
@@ -104,41 +124,58 @@ fun MessagesScreen(onBackPressed: () -> Unit) {
                         }
                     }
                 }
-            }
 
-            // Dialog for adding a new message
-            if (showDialog) {
-                AddMessageDialog(
-                    onDismiss = { showDialog = false },
-                    onAddMessage = { sender, messageBody, messageType, messagePriority ->
-                        coroutineScope.launch {
-                            val newMessage = SmsEntity(
-                                id = 0,
-                                sender = sender,
-                                messageBody = messageBody,
-                                timestamp = System.currentTimeMillis(),
-                                isSynchronized = false,
-                                isSynchronizedDate = 0L,
-                                messageType = messageType,
-                                messagePriority = messagePriority
-                            )
-                            smsDao.insert(newMessage)
-                            smsMessages = smsDao.getAllSms()  // Refresh the message list
+                // Dialog for adding a new message
+                if (showDialog) {
+                    AddMessageDialog(
+                        onDismiss = { showDialog = false },
+                        onAddMessage = { sender, messageBody, messageType, messagePriority ->
+                            coroutineScope.launch {
+                                val newMessage = SmsEntity(
+                                    id = 0,
+                                    sender = sender,
+                                    messageBody = messageBody,
+                                    timestamp = System.currentTimeMillis(),
+                                    isSynchronized = false,
+                                    isSynchronizedDate = 0L,
+                                    messageType = messageType,
+                                    messagePriority = messagePriority
+                                )
+                                smsDao.insert(newMessage)
+                                smsMessages = smsDao.getAllSms()  // Refresh the message list
+                            }
+                            showDialog = false
                         }
-                        showDialog = false
-                    }
-                )
+                    )
+                }
+
+                // Dialog for importing messages
+                if (showImportDialog) {
+                    ImportDialog(
+                        onDismiss = { showImportDialog = false },
+                        onImport = { dateInput  ->
+                            coroutineScope.launch {
+                                importMessages(context, dateInput, smsDao)
+                                smsMessages = smsDao.getAllSms()  // Refresh the message list after import
+                            }
+                            showImportDialog = false
+                        }
+                    )
+                }
             }
         }
     )
+
 }
 
 @Composable
 fun AddMessageDialog(onDismiss: () -> Unit, onAddMessage: (String, String, String, String) -> Unit) {
-    var sender by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+    val paymentMode = sharedPreferences.getString("payment_mode", "Unknown") // Default to "Unknown" if not found
     var messageBody by remember { mutableStateOf("") }
-    var messageType by remember { mutableStateOf("") }
-    var messagePriority by remember { mutableStateOf("") }
+    var messageType by remember { mutableStateOf("text") }
+    var messagePriority by remember { mutableStateOf("High") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -146,10 +183,11 @@ fun AddMessageDialog(onDismiss: () -> Unit, onAddMessage: (String, String, Strin
         text = {
             Column {
                 OutlinedTextField(
-                    value = sender,
-                    onValueChange = { sender = it },
+                    value = paymentMode ?: "Unknown", // Display paymentMode value
+                    onValueChange = {},              // No-op since it's uneditable
                     label = { Text("Sender") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false                  // Make it uneditable
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -163,20 +201,22 @@ fun AddMessageDialog(onDismiss: () -> Unit, onAddMessage: (String, String, Strin
                     value = messageType,
                     onValueChange = { messageType = it },
                     label = { Text("Message Type") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = messagePriority,
                     onValueChange = { messagePriority = it },
                     label = { Text("Message Priority") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                onAddMessage(sender, messageBody, messageType, messagePriority)
+                onAddMessage(paymentMode ?: "Unknown", messageBody, messageType, messagePriority)
             }) {
                 Text("Add")
             }
@@ -188,6 +228,96 @@ fun AddMessageDialog(onDismiss: () -> Unit, onAddMessage: (String, String, Strin
         }
     )
 }
+
+@Composable
+fun ImportDialog(onDismiss: () -> Unit, onImport: (String) -> Unit) {
+    // Get the current date in the format "YYYY-MM-DD"
+    val todayDate = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+    }
+    var dateInput by remember { mutableStateOf(todayDate) } // Default to today's date
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Import Messages") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = dateInput,
+                    onValueChange = { dateInput = it },
+                    label = { Text("Enter Date (YYYY-MM-DD)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onImport(dateInput)
+            }) {
+                Text("Import")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+fun importMessages(context: Context, date: String, smsDao: SmsDao) {
+    val contentResolver = context.contentResolver
+    val uri = android.provider.Telephony.Sms.CONTENT_URI
+
+    // Define the selection filter for SMS
+    val selection = "${android.provider.Telephony.Sms.DATE} >= ?"
+    val dateInMillis = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        .parse(date)?.time ?: 0L
+    val selectionArgs = arrayOf(dateInMillis.toString())
+
+    // Query SMS messages
+    val cursor = contentResolver.query(
+        uri,
+        null, // Fetch all columns
+        selection,
+        selectionArgs,
+        "${android.provider.Telephony.Sms.DATE} DESC" // Order by date descending
+    )
+
+    cursor?.use {
+        val smsList = mutableListOf<SmsEntity>()
+        val dateColumn = it.getColumnIndex(android.provider.Telephony.Sms.DATE)
+        val bodyColumn = it.getColumnIndex(android.provider.Telephony.Sms.BODY)
+        val addressColumn = it.getColumnIndex(android.provider.Telephony.Sms.ADDRESS)
+
+        while (it.moveToNext()) {
+            val timestamp = it.getLong(dateColumn)
+            val body = it.getString(bodyColumn)
+            val sender = it.getString(addressColumn)
+
+            // Create an SMS entity
+            val smsEntity = SmsEntity(
+                id = 0,
+                sender = sender ?: "Unknown",
+                messageBody = body ?: "No Content",
+                timestamp = timestamp,
+                isSynchronized = false,
+                isSynchronizedDate = 0L,
+                messageType = "imported",
+                messagePriority = "Normal"
+            )
+            smsList.add(smsEntity)
+        }
+
+        // Perform the database operation inside a coroutine
+        CoroutineScope(Dispatchers.IO).launch {
+            smsDao.insertAll(smsList)
+        }
+    }
+}
+
+
+
 
 
 
