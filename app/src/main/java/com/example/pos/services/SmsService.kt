@@ -1,5 +1,6 @@
 package com.example.pos
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -22,10 +23,7 @@ class SmsService : Service() {
         private const val NOTIFICATION_ID = 1001
     }
 
-<<<<<<< HEAD
     @SuppressLint("ForegroundServiceType", "NewApi")
-=======
->>>>>>> fca91ae10105f82d6f8c61944a0868c339c1bb7c
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -33,11 +31,7 @@ class SmsService : Service() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
-<<<<<<< HEAD
     @SuppressLint("NewApi")
-=======
-
->>>>>>> fca91ae10105f82d6f8c61944a0868c339c1bb7c
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && intent.hasExtra("sender") && intent.hasExtra("messageBody")) {
             val sender = intent.getStringExtra("sender")
