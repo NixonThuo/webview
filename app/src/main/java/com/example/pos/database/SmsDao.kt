@@ -24,4 +24,8 @@ interface SmsDao {
 
     @Query("SELECT * FROM sms_table WHERE isSynchronized = 0 ORDER BY timestamp DESC")
     suspend fun getUnsynchronizedSms(): List<SmsEntity>
+
+    // New Query to Check if a Message Body Exists
+    @Query("SELECT COUNT(*) FROM sms_table WHERE messageBody = :messageBody")
+    suspend fun doesMessageBodyExist(messageBody: String): Int
 }

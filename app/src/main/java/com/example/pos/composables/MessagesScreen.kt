@@ -1,6 +1,9 @@
 package com.example.pos.composables
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.pos.database.SmsDao
 import com.example.pos.database.SmsDatabase  // Import your database class
 import com.example.pos.database.SmsEntity       // Import your SMS entity class
@@ -21,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import com.example.pos.MainActivity.Companion.REQUEST_PHONE_STATE_PERMISSION
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -266,6 +273,21 @@ fun ImportDialog(onDismiss: () -> Unit, onImport: (String) -> Unit) {
 }
 
 fun importMessages(context: Context, date: String, smsDao: SmsDao) {
+    val sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+    val paymentMode = sharedPreferences.getString("payment_mode", "Unknown")
+    // Check for SMS permissions
+    val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+
+    if (!hasPermission) {
+        // If permission is not granted, request it
+        ActivityCompat.requestPermissions(
+            (context as Activity), // Cast context to Activity to use requestPermissions
+            arrayOf(Manifest.permission.READ_SMS),
+            REQUEST_PHONE_STATE_PERMISSION
+        )
+        return // Exit the function; permission request is asynchronous
+    }
+
     val contentResolver = context.contentResolver
     val uri = android.provider.Telephony.Sms.CONTENT_URI
 
@@ -292,21 +314,32 @@ fun importMessages(context: Context, date: String, smsDao: SmsDao) {
 
         while (it.moveToNext()) {
             val timestamp = it.getLong(dateColumn)
-            val body = it.getString(bodyColumn)
-            val sender = it.getString(addressColumn)
+            val body = it.getString(bodyColumn) ?: "No Content"
+            val sender = it.getString(addressColumn) ?: "Unknown"
 
-            // Create an SMS entity
-            val smsEntity = SmsEntity(
-                id = 0,
-                sender = sender ?: "Unknown",
-                messageBody = body ?: "No Content",
-                timestamp = timestamp,
-                isSynchronized = false,
-                isSynchronizedDate = 0L,
-                messageType = "imported",
-                messagePriority = "Normal"
-            )
-            smsList.add(smsEntity)
+            println("fetch  body")
+            println(body)
+
+            // Check if the message body already exists in the database
+            runBlocking {
+                if(sender == paymentMode) {
+                    val exists = smsDao.doesMessageBodyExist(body) > 0
+                    if (!exists) {
+                        // Create an SMS entity if it doesn't exist
+                        val smsEntity = SmsEntity(
+                            id = 0,
+                            sender = sender,
+                            messageBody = body,
+                            timestamp = timestamp,
+                            isSynchronized = false,
+                            isSynchronizedDate = 0L,
+                            messageType = "imported",
+                            messagePriority = "Normal"
+                        )
+                        smsList.add(smsEntity)
+                    }
+                }
+            }
         }
 
         // Perform the database operation inside a coroutine
@@ -315,6 +348,7 @@ fun importMessages(context: Context, date: String, smsDao: SmsDao) {
         }
     }
 }
+
 
 
 

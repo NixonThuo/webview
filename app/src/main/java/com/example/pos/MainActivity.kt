@@ -8,8 +8,6 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
