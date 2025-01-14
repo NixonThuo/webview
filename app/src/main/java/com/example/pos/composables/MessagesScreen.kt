@@ -3,6 +3,7 @@ package com.example.pos.composables
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
@@ -28,6 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import com.example.pos.MainActivity.Companion.REQUEST_PHONE_STATE_PERMISSION
+import com.example.pos.MessagesActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,15 +162,19 @@ fun MessagesScreen(onBackPressed: () -> Unit) {
                 if (showImportDialog) {
                     ImportDialog(
                         onDismiss = { showImportDialog = false },
-                        onImport = { dateInput  ->
+                        onImport = { dateInput ->
                             coroutineScope.launch {
-                                importMessages(context, dateInput, smsDao)
-                                smsMessages = smsDao.getAllSms()  // Refresh the message list after import
+                                importMessages(context, dateInput, smsDao) {
+                                    coroutineScope.launch {
+                                        smsMessages = smsDao.getAllSms() // Refresh the message list
+                                    }
+                                }
+                                showImportDialog = false
                             }
-                            showImportDialog = false
                         }
                     )
                 }
+
             }
         }
     )
@@ -272,38 +278,33 @@ fun ImportDialog(onDismiss: () -> Unit, onImport: (String) -> Unit) {
     )
 }
 
-fun importMessages(context: Context, date: String, smsDao: SmsDao) {
+fun importMessages(context: Context, date: String, smsDao: SmsDao, refreshCallback: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
     val paymentMode = sharedPreferences.getString("payment_mode", "Unknown")
-    // Check for SMS permissions
     val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
 
     if (!hasPermission) {
-        // If permission is not granted, request it
         ActivityCompat.requestPermissions(
-            (context as Activity), // Cast context to Activity to use requestPermissions
+            (context as Activity),
             arrayOf(Manifest.permission.READ_SMS),
             REQUEST_PHONE_STATE_PERMISSION
         )
-        return // Exit the function; permission request is asynchronous
+        return
     }
 
     val contentResolver = context.contentResolver
     val uri = android.provider.Telephony.Sms.CONTENT_URI
-
-    // Define the selection filter for SMS
     val selection = "${android.provider.Telephony.Sms.DATE} >= ?"
     val dateInMillis = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
         .parse(date)?.time ?: 0L
     val selectionArgs = arrayOf(dateInMillis.toString())
 
-    // Query SMS messages
     val cursor = contentResolver.query(
         uri,
-        null, // Fetch all columns
+        null,
         selection,
         selectionArgs,
-        "${android.provider.Telephony.Sms.DATE} DESC" // Order by date descending
+        "${android.provider.Telephony.Sms.DATE} DESC"
     )
 
     cursor?.use {
@@ -317,15 +318,10 @@ fun importMessages(context: Context, date: String, smsDao: SmsDao) {
             val body = it.getString(bodyColumn) ?: "No Content"
             val sender = it.getString(addressColumn) ?: "Unknown"
 
-            println("fetch  body")
-            println(body)
-
-            // Check if the message body already exists in the database
             runBlocking {
-                if(sender == paymentMode) {
+                if (sender == paymentMode) {
                     val exists = smsDao.doesMessageBodyExist(body) > 0
                     if (!exists) {
-                        // Create an SMS entity if it doesn't exist
                         val smsEntity = SmsEntity(
                             id = 0,
                             sender = sender,
@@ -342,12 +338,13 @@ fun importMessages(context: Context, date: String, smsDao: SmsDao) {
             }
         }
 
-        // Perform the database operation inside a coroutine
         CoroutineScope(Dispatchers.IO).launch {
             smsDao.insertAll(smsList)
+            refreshCallback() // Notify the caller to refresh the UI
         }
     }
 }
+
 
 
 
